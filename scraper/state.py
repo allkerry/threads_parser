@@ -1,0 +1,84 @@
+"""Shared state across all account workers: TokenBucket (rate limit) and
+SeenCache (dedup with claim/confirm/release, so an item that fails to
+send is not lost - it becomes claimable again).
+"""
+from __future__ import annotations
+
+import asyncio
+import time
+from collections import OrderedDict
+
+
+class TokenBucket:
+    """Async token bucket shared by all accounts. `rate_per_second` is the
+    total budget for the whole process, not per account.
+    """
+
+    def __init__(self, rate_per_second: float, burst: float | None = None) -> None:
+        self._rate = max(rate_per_second, 0.01)
+        self._capacity = burst if burst is not None else max(self._rate * 2, 1.0)
+        self._tokens = self._capacity
+        self._last_refill = time.monotonic()
+        self._lock = asyncio.Lock()
+
+    def set_rate(self, rate_per_second: float) -> None:
+        self._rate = max(rate_per_second, 0.01)
+
+    async def acquire(self, timeout: float) -> bool:
+        deadline = time.monotonic() + timeout
+        while True:
+            async with self._lock:
+                self._refill()
+                if self._tokens >= 1.0:
+                    self._tokens -= 1.0
+                    return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            await asyncio.sleep(min(0.1, remaining))
+
+    def _refill(self) -> None:
+        now = time.monotonic()
+        elapsed = now - self._last_refill
+        self._last_refill = now
+        self._tokens = min(self._capacity, self._tokens + elapsed * self._rate)
+
+
+class SeenCache:
+    """Bounded dedup cache shared by all accounts, keyed by external_id.
+
+    States:
+    - not present: never seen, claimable.
+    - "pending": claimed by some worker, currently being sent.
+    - "confirmed": server confirmed storage, permanently a duplicate
+      (until evicted by size limit).
+    """
+
+    def __init__(self, max_size: int) -> None:
+        self._max_size = max_size
+        self._store: OrderedDict[str, str] = OrderedDict()
+        self._lock = asyncio.Lock()
+
+    async def try_claim(self, external_id: str) -> bool:
+        async with self._lock:
+            if external_id in self._store:
+                return False
+            self._store[external_id] = "pending"
+            self._store.move_to_end(external_id)
+            self._evict_if_needed()
+            return True
+
+    async def confirm(self, external_id: str) -> None:
+        async with self._lock:
+            self._store[external_id] = "confirmed"
+            self._store.move_to_end(external_id)
+
+    async def release(self, external_id: str) -> None:
+        """Undo a claim after a failed send, so it can be retried next cycle."""
+        async with self._lock:
+            if self._store.get(external_id) == "pending":
+                del self._store[external_id]
+
+    def _evict_if_needed(self) -> None:
+        while len(self._store) > self._max_size:
+            self._store.popitem(last=False)
