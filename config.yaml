@@ -1,0 +1,36 @@
+# Hot-reloaded at runtime (checked every reload_interval_seconds).
+# Secrets (proxy creds, cookies) are NOT here - see accounts.yaml / .env.
+
+store_endpoint: "http://127.0.0.1:9000/store_items"
+domain: "threads.net"
+
+# How often ConfigStore checks this file's mtime for changes.
+reload_interval_seconds: 5
+
+# Overall rate of items leaving the process towards store_items,
+# shared across ALL accounts via a single TokenBucket.
+target_rate_per_second: 2.0
+token_wait_timeout_seconds: 10
+
+# How often EACH account worker runs a scrape cycle.
+poll_interval_seconds: 60
+poll_jitter_ratio: 0.25
+
+# Drop items older than this before dedup/send.
+max_age_seconds: 86400
+
+# Batch POST sizing to /store_items (keep below server BATCH_MAX_ITEMS).
+batch_max_items: 200
+
+# In-memory dedup cache size (shared across accounts).
+seen_cache_size: 5000
+
+# Backoff on send/browser errors.
+base_backoff_seconds: 2.0
+max_backoff_seconds: 120.0
+
+# Targets to scrape: Threads profile usernames (without @) or thread URLs.
+# Filled in once real targets are confirmed.
+targets:
+  - type: "profile"
+    value: "zuck"
