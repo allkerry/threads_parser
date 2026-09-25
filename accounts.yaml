@@ -1,0 +1,22 @@
+# Account slots. Read ONCE at process start (unlike config.yaml).
+# No secrets here: proxy credentials are referenced by env var NAMES,
+# actual values live only in .env (see .env.example).
+
+accounts:
+  - name: "account_1"
+    enabled: false
+    cookie_file: "cookies/account_1.json"
+    user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+    proxy:
+      server: "http://proxy.example.com:8000"   # placeholder, replace with real proxy host:port
+      username_env: "PROXY_ACCOUNT_1_USER"
+      password_env: "PROXY_ACCOUNT_1_PASS"
+
+  - name: "account_2"
+    enabled: false
+    cookie_file: "cookies/account_2.json"
+    user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+    proxy:
+      server: "http://proxy.example.com:8000"
+      username_env: "PROXY_ACCOUNT_2_USER"
+      password_env: "PROXY_ACCOUNT_2_PASS"
