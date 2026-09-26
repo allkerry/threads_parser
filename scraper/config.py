@@ -148,7 +148,7 @@ def load_cookies(cookie_file: Path) -> list[dict[str, Any]]:
         cookie: dict[str, Any] = {
             "name": c["name"],
             "value": c["value"],
-            "domain": c.get("domain", ".threads.net"),
+            "domain": c.get("domain", ".threads.com"),  # real site host; Exorde's DOMAIN constant stays "threads.net"
             "path": c.get("path", "/"),
         }
         if "expirationDate" in c and c["expirationDate"]:

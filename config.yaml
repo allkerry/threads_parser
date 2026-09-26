@@ -22,6 +22,16 @@ max_age_seconds: 86400
 # Batch POST sizing to /store_items (keep below server BATCH_MAX_ITEMS).
 batch_max_items: 200
 
+# How many times to scroll a profile feed per cycle, to trigger the page's
+# own pagination GraphQL calls (we intercept, not send them ourselves).
+max_feed_scrolls: 3
+# Pause between scrolls / after opening a post, so the page's own JS has
+# time to fire its GraphQL request and we can capture the response.
+scroll_pause_seconds: 1.5
+# Whether to also open each post that reports replies and collect its
+# DIRECT replies (one extra page navigation per such post - slower).
+fetch_replies: true
+
 # In-memory dedup cache size (shared across accounts).
 seen_cache_size: 5000
 

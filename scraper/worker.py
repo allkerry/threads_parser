@@ -74,8 +74,16 @@ async def _run_cycle(
     token_wait_timeout = cfg.get("token_wait_timeout_seconds", 10)
     batch_max_items = cfg.get("batch_max_items", 200)
     store_endpoint = cfg["store_endpoint"]
+    max_feed_scrolls = cfg.get("max_feed_scrolls", 3)
+    scroll_pause_seconds = cfg.get("scroll_pause_seconds", 1.5)
+    fetch_replies = cfg.get("fetch_replies", True)
 
-    raw_posts: list[RawThreadsPost] = await session.fetch_new_posts(targets)
+    raw_posts: list[RawThreadsPost] = await session.fetch_new_posts(
+        targets,
+        max_feed_scrolls=max_feed_scrolls,
+        scroll_pause_seconds=scroll_pause_seconds,
+        fetch_replies=fetch_replies,
+    )
 
     now = datetime.now(timezone.utc)
     fresh = [
